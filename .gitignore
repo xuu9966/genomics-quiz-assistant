@@ -1,0 +1,26 @@
+# 本地配置与凭据（password 不落盘，config.json 仍默认忽略）
+config.json
+
+# 运行产物
+data/
+logs/
+exports/
+
+# 测试/调试日志与状态备份（不是源码，不进仓库）
+*.log
+data-diag/
+_diag_*
+state.bak-*.json
+
+# Python 缓存与虚拟环境
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 编辑器与操作系统临时文件
+.vscode/
+.idea/
+.DS_Store
+*.tmp

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>章节自测复习助手 · 复习控制台</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <strong>Chapter Quiz Assistant</strong>
+    <span class="subtitle">章节自测复习助手 · 本地复习控制台</span>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-view="overview" type="button">总览</button>
+    <button class="tab" data-view="records" type="button">复习记录</button>
+    <button class="tab" data-view="bank" type="button">复习题库</button>
+  </nav>
+</header>
+
+<main>
+  <section id="start-panel" class="start-panel">
+    <div class="section-head">
+      <h1>复习启动</h1>
+      <span id="runtime-phase-text" class="muted">运行态：未启动</span>
+    </div>
+    <p class="muted note">账号密码只在本机网页提交，不写入任何文件；面板仅在本机可访问。关闭本页不会中断后台执行，但请保持启动窗口开启。</p>
+    <form id="start-form" autocomplete="off">
+      <div class="start-fields">
+        <label>学号：<input id="start-username" name="username" type="text" autocomplete="off" placeholder="填写学号"></label>
+        <label>密码：<input id="start-password" name="password" type="password" autocomplete="off" placeholder="仅本次登录使用"></label>
+        <label>每章次数：<input id="start-repeat" name="repeat_default" type="number" min="1" max="99" step="1" value="3"></label>
+        <label>限量（大章数，0=全量）：<input id="start-limit" name="limit" type="number" min="0" step="1" value="10"></label>
+      </div>
+      <fieldset class="chapter-fieldset">
+        <legend>选择章节（至少 1 章；支持全选）</legend>
+        <div id="chapter-grid" class="chapter-grid"></div>
+        <div class="chapter-actions">
+          <button id="btn-chapter-all" class="text-button" type="button">全选</button>
+          <button id="btn-chapter-none" class="text-button" type="button">全不选</button>
+        </div>
+      </fieldset>
+      <details class="override-box">
+        <summary>按章覆盖（可选：为指定章单独设次数，留空则使用每章次数）</summary>
+        <div id="override-grid" class="chapter-grid"></div>
+      </details>
+      <div class="start-actions">
+        <button id="btn-start" type="submit">开始复习</button>
+        <span id="start-feedback" class="muted" role="status"></span>
+      </div>
+    </form>
+    <div id="runtime-snapshot" class="runtime-snapshot muted">本次参数快照：尚未启动。</div>
+    <div id="runtime-error" class="runtime-error muted"></div>
+  </section>
+
+  <section id="view-overview" class="view active">
+    <div class="section-head">
+      <h1>复习进度总览</h1>
+      <span id="scope-line" class="muted">本次范围：加载中…</span>
+    </div>
+    <div id="metrics" class="metrics"></div>
+
+    <div class="panel">
+      <h2>总体复习进度</h2>
+      <div id="overall-progress" class="progress-line">正在读取状态…</div>
+      <h2>各章复习进度</h2>
+      <div id="chapter-progress" class="chapter-progress">—</div>
+    </div>
+
+    <div class="panel">
+      <div class="section-head">
+        <h2>得分明细（大章 / 第k次）</h2>
+        <span class="muted legend">状态：… 待复习 / ● 进行中 / ✓ 已完成 / ✕ 失败 / — 已跳过</span>
+      </div>
+      <table class="grid">
+        <thead><tr><th>#</th><th>大章 / 第k次</th><th>节点 id</th><th>状态</th><th>得分</th></tr></thead>
+        <tbody id="overview-rows"><tr><td colspan="5">加载中…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="section-head">
+        <h2>运行日志（尾部，可复制）</h2>
+        <button class="text-button" data-goto="records" type="button">查看全部记录 →</button>
+      </div>
+      <pre id="log-tail" class="log-tail">加载中…</pre>
+    </div>
+  </section>
+
+  <section id="view-records" class="view hidden">
+    <div class="section-head"><h1>复习记录</h1><span id="records-count" class="muted"></span></div>
+    <div class="toolbar">
+      <label>搜索：<input id="record-search" type="search" placeholder="大章 / 第k次 / 备注"></label>
+      <label>状态：<select id="record-status">
+        <option value="">全部</option><option value="pending">待复习</option>
+        <option value="running">进行中</option><option value="success">已完成</option>
+        <option value="failed">失败</option><option value="skipped">已跳过</option>
+      </select></label>
+      <label>大章：<select id="record-chapter"><option value="">全部</option></select></label>
+      <label>第k次：<select id="record-repeat"><option value="">全部</option></select></label>
+      <button id="btn-export-csv" class="text-button" type="button">导出 CSV</button>
+      <button id="btn-rerun" class="text-button" type="button">重新执行所选</button>
+    </div>
+    <table class="grid">
+      <thead><tr><th>选</th><th>#</th><th>大章 / 第k次</th><th>节点 id</th><th>状态</th><th>得分</th><th>会话标识</th><th>备注</th></tr></thead>
+      <tbody id="record-rows"><tr><td colspan="8">加载中…</td></tr></tbody>
+    </table>
+    <div id="record-detail" class="detail-box muted">选中一行可查看失败摘要与处理建议（摘要不含凭据）。</div>
+  </section>
+
+  <section id="view-bank" class="view hidden">
+    <div class="section-head"><h1>复习题库</h1><span id="bank-count" class="muted"></span></div>
+    <div class="toolbar">
+      <label>搜索：<input id="bank-search" type="search" placeholder="题目 / 解析关键词"></label>
+      <label>题型：<select id="bank-qtype">
+        <option value="">全部</option><option value="qt01">单选题</option><option value="qt02">多选题</option>
+      </select></label>
+      <label>大章：<select id="bank-chapter"><option value="">全部</option></select></label>
+      <button id="btn-export-html" class="text-button" type="button">导出 HTML</button>
+      <button id="btn-export-md" class="text-button" type="button">导出 Markdown</button>
+      <button id="btn-export-json" class="text-button" type="button">导出 JSON</button>
+    </div>
+    <p class="muted note">提示：建议先自测，再展开解析。题库仅用于个人复习，不分发、不商用。</p>
+    <div id="bank-list" class="bank-list">加载中…</div>
+  </section>
+</main>
+
+<footer class="footer">本章节自测复习助手仅用于个人课程自测与复习，请遵守课程与平台规定；所有数据仅保存在本机。</footer>
+<script src="/static/app.js"></script>
+</body>
+</html>

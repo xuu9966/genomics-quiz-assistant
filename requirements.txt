@@ -1,0 +1,5 @@
+# Chapter Quiz Assistant — 依赖声明
+# 运行环境：Python >= 3.10（仅标准库，无需 pip install）
+# 本项目的 HTTP、HTML 解析、持久化、Web 控制台与日志全部由 Python 标准库实现。
+# 前端为原生 HTML / CSS / JavaScript，无 npm、无构建步骤。
+# 明确不使用：requests / flask / fastapi / sqlalchemy / react / vite / tailwind。

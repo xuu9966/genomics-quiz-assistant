@@ -1,0 +1,19 @@
+{
+  "base_url": "http://10.20.212.33:5000/",
+  "username": "",
+  "password_env": "CQA_PASSWORD",
+  "chapters": [],
+  "limit": 10,
+  "repeat_default": 3,
+  "repeat_overrides": {},
+  "model": "deepseek-v4-flash",
+  "paper": { "single_count": 5, "multi_count": 5, "score_per": 10, "duration": 0 },
+  "request_interval_sec": 2.0,
+  "retry_times": 3,
+  "retry_backoff_sec": 2.0,
+  "task_timeout_sec": 180,
+  "score_poll_interval_sec": 5,
+  "score_poll_timeout_sec": 90,
+  "web": { "host": "127.0.0.1", "port": 8765, "poll_sec": 3, "status_color": false },
+  "paths": { "data_dir": "data", "log_dir": "logs", "export_dir": "exports" }
+}
