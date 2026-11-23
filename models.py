@@ -294,6 +294,26 @@ class Question:
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Question":
+        """从持久化的题库 JSON 还原；保留原 dedup_key，避免重启后重复。"""
+        raw = data if isinstance(data, dict) else {}
+        content = str(raw.get("content") or "")
+        options = raw.get("options") or []
+        sources = raw.get("sources") or []
+        return cls(
+            dedup_key=str(raw.get("dedup_key") or md5_text(content)),
+            qid=str(raw.get("qid") or ""),
+            qtype=str(raw.get("qtype") or QType.SINGLE.value),
+            content=content,
+            options=[str(item) for item in options] if isinstance(options, list) else [],
+            correct_answer=str(raw.get("correct_answer") or ""),
+            analysis=str(raw.get("analysis") or ""),
+            sources=[str(item) for item in sources] if isinstance(sources, list) else [],
+            has_image=bool(raw.get("has_image", False)),
+            chapter=str(raw.get("chapter") or ""),
+        )
+
 
 @dataclass
 class AnswerDetail:

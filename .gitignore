@@ -10,6 +10,8 @@ exports/
 *.log
 data-diag/
 _diag_*
+_probe_*
+_probe*.html
 state.bak-*.json
 
 # Python 缓存与虚拟环境

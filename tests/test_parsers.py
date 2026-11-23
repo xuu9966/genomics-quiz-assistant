@@ -9,6 +9,7 @@ import parsers
 from fixtures import (
     CONCLUSION_JSON,
     RESULT_HTML,
+    RESULT_HTML_BUCKET,
     RESULT_HTML_NO_SCORE,
     SMALL_GRAPH_HTML,
     SMALL_TREE,
@@ -96,6 +97,14 @@ class TestWindowVariables(unittest.TestCase):
         html = "window.examData = '[{\"content\":\"题干\"}]';"
         self.assertEqual(len(parsers.extract_exam_data(html)), 1)
         self.assertEqual(parsers.extract_exam_data("window.examData = not-json;"), [])
+
+    def test_exam_data_bucket_form_from_real_site(self) -> None:
+        """真实结果页：题型 → {questions:[...]}，每题带 correct_answer/analysis。"""
+        items = parsers.extract_exam_data(RESULT_HTML_BUCKET)
+        self.assertEqual(len(items), 2)
+        self.assertEqual([item["qtype"] for item in items], ["qt01", "qt02"])
+        self.assertTrue(items[0]["analysis"])
+        self.assertIn("k-mer", items[0]["correct_answer"])
 
 
 class TestScoreAndConclusion(unittest.TestCase):

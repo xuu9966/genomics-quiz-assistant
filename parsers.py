@@ -218,7 +218,18 @@ def extract_window_var(html: str, name: str) -> Any:
 
 
 def extract_exam_data(html: str) -> List[Dict[str, Any]]:
-    """解析结果页 window.examData，统一返回题目对象数组。"""
+    """解析结果页 window.examData，统一返回题目对象数组。
+
+    2026-11-23 实测：平台真实结构是「题型 → 分桶对象」：
+
+        window.examData = {"qt01": {"count":5, "qtype_name":"单选题",
+            "questions":[{"content":..., "correct_answer":...,
+                          "analysis":..., "options":[...]}]}}
+
+    旧实现只认顶层数组/单层 questions，会把整个分桶当成一个"题目"，
+    再因没有 content 被题库丢弃——结果页有答案和解析，题库却一题都没有。
+    这里兼容三种形态：题型分桶、单层数组、直接题目对象。
+    """
     raw = extract_window_var(html, "examData")
     if raw is None:
         return []
@@ -228,6 +239,24 @@ def extract_exam_data(html: str) -> List[Dict[str, Any]]:
         except (ValueError, TypeError):
             return []
     if isinstance(raw, dict):
+        # 真实形态：题型 → {..., questions: [题目]}。按题型展开并回填题型字段。
+        bucketed: List[Dict[str, Any]] = []
+        for key, bucket in raw.items():
+            if not isinstance(bucket, dict):
+                continue
+            items = bucket.get("questions")
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                item.setdefault("qtype", str(key))
+                if bucket.get("qtype_name"):
+                    item.setdefault("qtype_name", str(bucket["qtype_name"]))
+                bucketed.append(item)
+        if bucketed:
+            return bucketed
+        # 兼容形态：{questions|data|list|items: [题目]}
         for key in ("questions", "data", "list", "items", "examData"):
             if isinstance(raw.get(key), list):
                 raw = raw[key]

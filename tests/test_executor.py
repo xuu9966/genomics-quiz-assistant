@@ -12,7 +12,7 @@ import unittest
 from answer_engine import PlatformChatAnswerEngine
 from bank import QuestionBank
 from executor import TaskExecutor
-from fixtures import CONCLUSION_JSON, GENERATE_RESPONSE, RESULT_HTML, RESULT_HTML_NO_SCORE, config_copy, normalized_questions
+from fixtures import CONCLUSION_JSON, GENERATE_RESPONSE, RESULT_HTML, RESULT_HTML_BUCKET, RESULT_HTML_NO_SCORE, config_copy, normalized_questions
 from models import AppConfig, ExecutionRecord, Task, TaskStatus
 from platform_client import GenerateError, Paper
 from state_store import StateStore
@@ -109,6 +109,18 @@ class ExecutorTestBase(unittest.TestCase):
 
 
 class TestFullFlow(ExecutorTestBase):
+    def test_bank_saved_after_success_with_real_result_page(self) -> None:
+        """真机形态结果页的题目/答案/解析跑完后必须落盘，重启可读。"""
+        bank_path = os.path.join(self.tmp.name, "data", "bank.json")
+        self.bank.path = bank_path
+        client = FakeClient(result_html=RESULT_HTML_BUCKET)
+        records = list(self.make_executor(client).run_plan([_task()]))
+        self.assertEqual(records[0].status, TaskStatus.SUCCESS.value)
+        self.assertTrue(os.path.isfile(bank_path))
+        reloaded = QuestionBank(path=bank_path)
+        self.assertEqual(len(reloaded), 2)
+        self.assertIn("k-mer", reloaded.all()[0].correct_answer)
+
     def test_generate_answer_submit_score_and_persist(self) -> None:
         # Arrange
         client = FakeClient()

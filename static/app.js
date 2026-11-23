@@ -209,26 +209,53 @@
   }
 
   function renderBank(questions) {
-    document.getElementById('bank-count').textContent = '共 ' + questions.length + ' 题（已按题干去重）';
+    document.getElementById('bank-count').textContent =
+      '共 ' + questions.length + ' 题（按大章分组，题干去重）';
+    var list = document.getElementById('bank-list');
     if (!questions.length) {
-      document.getElementById('bank-list').innerHTML = '<p class="muted">暂无题目；执行复习后可从结果页与评阅总结自动汇聚。</p>';
+      list.innerHTML = '<p class="muted">暂无题目；完成一次复习后，题目、正确答案与解析会自动保存在本机 data/bank.json。</p>';
       return;
     }
-    var marks = {};
-    document.getElementById('bank-list').innerHTML = questions.map(function (q, index) {
-      var correct = String(q.correct_answer || '').trim().toUpperCase();
-      var options = (q.options || []).map(function (option, position) {
-        var letter = String.fromCharCode(65 + position);
-        var isCorrect = (correct.indexOf(letter) >= 0) || option === q.correct_answer;
-        var image = /<img/i.test(option) ? ' <span class="muted">[含图片]</span>' : '';
-        return '<li>' + letter + '. ' + esc(option) + image +
-          (isCorrect ? ' <span class="mark">✓ 正确</span>' : '') + '</li>';
+    // 按大章分组：同学复习时先看某一章，再展开题目看答案和解析。
+    var groups = {};
+    questions.forEach(function (q) {
+      var chapter = q.chapter || '未分类';
+      if (!groups[chapter]) { groups[chapter] = []; }
+      groups[chapter].push(q);
+    });
+    var chapters = Object.keys(groups).sort(function (a, b) {
+      return a.localeCompare(b, 'zh-CN');
+    });
+    var index = 0;
+    list.innerHTML = chapters.map(function (chapter) {
+      var items = groups[chapter].map(function (q) {
+        index += 1;
+        var answerText = String(q.correct_answer || '').trim();
+        var answerParts = answerText.split(/[；;，,]/).map(function (part) {
+          return part.trim();
+        }).filter(Boolean);
+        var lettersOnly = /^[A-Za-z](?:[,，、\s][A-Za-z])*$/.test(answerText);
+        var answerLetters = answerText.toUpperCase().split(/[,，、\s]+/);
+        var options = (q.options || []).map(function (option, position) {
+          var letter = String.fromCharCode(65 + position);
+          var isCorrect = lettersOnly
+            ? answerLetters.indexOf(letter) >= 0
+            : answerParts.some(function (part) {
+              return part === option || (part.length >= 4 && option.indexOf(part) >= 0);
+            });
+          var image = /<img/i.test(option) ? ' <span class="muted">[含图片]</span>' : '';
+          return '<li>' + letter + '. ' + esc(option) + image +
+            (isCorrect ? ' <span class="mark">✓ 正确</span>' : '') + '</li>';
+        }).join('');
+        var typeText = q.qtype === 'qt02' ? '多选' : '单选';
+        return '<details><summary>Q' + index + '（' + typeText + '） ' + esc(q.content).slice(0, 120) +
+          '</summary><ol>' + options + '</ol>' +
+          '<div class="answer"><p>正确答案：' + esc(q.correct_answer || '—') + '</p>' +
+          '<p>解析：' + esc(q.analysis || '—') + '</p>' +
+          '<p class="muted">来源：' + esc((q.sources || []).join(' / ')) + '　建议先自测，后看解析。</p></div></details>';
       }).join('');
-      var typeText = q.qtype === 'qt02' ? '多选' : '单选';
-      return '<details><summary>Q' + (index + 1) + '（' + typeText + '）[' + esc(q.chapter || '未分类') +
-        '] ' + esc(q.content).slice(0, 120) + '</summary><ol>' + options + '</ol>' +
-        '<div class="answer"><p>正确答案：' + esc(q.correct_answer) + '</p><p>解析：' + esc(q.analysis || '—') +
-        '</p><p class="muted">来源：' + esc((q.sources || []).join(' / ')) + '　建议先自测，后看解析。</p></div></details>';
+      return '<section class="bank-group"><h2>' + esc(chapter) +
+        '<span class="muted"> · ' + groups[chapter].length + ' 题</span></h2>' + items + '</section>';
     }).join('');
   }
 

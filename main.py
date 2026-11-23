@@ -42,6 +42,12 @@ def build_store(cfg: AppConfig, logger: Any = None) -> StateStore:
                       config_masked=cfg.safe_dict(), logger=logger)
 
 
+def build_bank(cfg: AppConfig) -> QuestionBank:
+    """题库持久化到 data/bank.json；重启面板后已采题目与解析仍在。"""
+    data_dir = str((cfg.paths or {}).get("data_dir") or "data")
+    return QuestionBank(path=os.path.join(data_dir, "bank.json"))
+
+
 def build_client(cfg: AppConfig, logger: Logger) -> PlatformClient:
     """创建平台适配层；request_timeout 与单任务超时联动。"""
     return PlatformClient(cfg, logger=logger, request_timeout=float(max(30, cfg.task_timeout_sec)))
@@ -168,7 +174,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     limit = parse_limit_argument(args.limit, args.yes)
     logger = build_logger(cfg)
     store = build_store(cfg, logger)
-    bank = QuestionBank()
+    bank = build_bank(cfg)
     client = build_client(cfg, logger)
     executor = build_executor(cfg, client, store, bank, logger, args.force)
     web = WebApp(cfg, store, bank, logger, executor)
@@ -203,7 +209,7 @@ def cmd_bank(args: argparse.Namespace) -> int:
     cfg = AppConfig.load(args.config)
     logger = build_logger(cfg)
     client = build_client(cfg, logger)
-    bank = QuestionBank()
+    bank = build_bank(cfg)
     client.login()
     added = 0
     for page in range(1, max(1, args.pages) + 1):
@@ -222,6 +228,7 @@ def cmd_bank(args: argparse.Namespace) -> int:
             added += bank.collect_from_conclusion(item["conclusion"], chapter)
         if page >= int(payload.get("total_pages") or 1):
             break
+    bank.save()
 
     from exporters import bank_html, bank_json, bank_markdown
     export_dir = str((cfg.paths or {}).get("export_dir") or "exports")
@@ -244,7 +251,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     cfg = AppConfig.load(args.config, require_password=False)
     logger = build_logger(cfg)
     store = build_store(cfg, logger)
-    bank = QuestionBank()
+    bank = build_bank(cfg)
     web = WebApp(cfg, store, bank, logger, None)
 
     if getattr(args, "open_browser", False):

@@ -1,17 +1,66 @@
-"""复习题库汇聚：双来源采集、题干 MD5 去重、多来源合并与检索。"""
+"""复习题库汇聚：双来源采集、题干 MD5 去重、多来源合并、检索与本机持久化。"""
 from __future__ import annotations
 
+import json
+import os
 from typing import Any, Dict, Iterable, List, Optional
 
 import parsers
 from models import QType, Question
 
+BANK_SCHEMA_VERSION = 1
+
 
 class QuestionBank:
-    """内存题库；所有题目以 md5(题干原文) 为唯一键。"""
+    """题库；所有题目以 md5(题干原文) 为唯一键，可持久化到 data/bank.json。"""
 
-    def __init__(self, questions: Optional[Dict[str, Question]] = None):
+    def __init__(self, path: str = "", questions: Optional[Dict[str, Question]] = None):
+        self.path = str(path or "")
         self.questions: Dict[str, Question] = dict(questions or {})
+        if self.path:
+            self.load(self.path)
+
+    # ---------- 本机持久化 ----------
+    def load(self, path: str = "") -> int:
+        """从 JSON 载入题库；文件不存在或损坏时按空库处理，返回新增题数。"""
+        target = str(path or self.path)
+        if not target:
+            return 0
+        self.path = target
+        if not os.path.isfile(target):
+            return 0
+        try:
+            with open(target, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (OSError, ValueError):
+            return 0
+        rows = data.get("questions") if isinstance(data, dict) else data
+        if not isinstance(rows, list):
+            return 0
+        before = len(self.questions)
+        for row in rows:
+            question = Question.from_dict(row)
+            if question.content:
+                self.add(question)
+        return len(self.questions) - before
+
+    def save(self, path: str = "") -> bool:
+        """原子写入题库 JSON；未设置 path 时返回 False（纯内存模式）。"""
+        target = str(path or self.path)
+        if not target:
+            return False
+        parent = os.path.dirname(os.path.abspath(target))
+        os.makedirs(parent, exist_ok=True)
+        payload = {
+            "schema_version": BANK_SCHEMA_VERSION,
+            "questions": [question.to_dict() for question in self.all()],
+        }
+        temporary = target + ".tmp"
+        with open(temporary, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=False, indent=2)
+        os.replace(temporary, target)
+        self.path = target
+        return True
 
     def add(self, question: Question) -> None:
         """同题合并来源与解析，不覆盖已有内容。"""
@@ -31,7 +80,8 @@ class QuestionBank:
             if not content:
                 continue
             options = self._normalize_options(item.get("options"))
-            correct_answer = str(item.get("correct_answer") or item.get("answer_text") or "")
+            correct_answer = self._text_answer(
+                item.get("correct_answer") or item.get("answer_text"))
             if not correct_answer:
                 correct_answer = self._flag_answer(item.get("options"))
             qtype = self._normalize_qtype(item.get("qtype") or item.get("qtype_name") or item.get("type"))
@@ -74,6 +124,13 @@ class QuestionBank:
             else:
                 options.append(str(item or ""))
         return options
+
+    @staticmethod
+    def _text_answer(raw: Any) -> str:
+        """正确答案可能是文本，也可能是选项文本数组（多选题）；统一为可读文本。"""
+        if isinstance(raw, (list, tuple)):
+            return "；".join(str(item or "").strip() for item in raw if str(item or "").strip())
+        return str(raw or "").strip()
 
     @staticmethod
     def _flag_answer(raw: Any) -> str:

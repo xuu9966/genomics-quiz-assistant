@@ -145,6 +145,42 @@ RESULT_HTML_NO_SCORE = """<!DOCTYPE html><html><body>
 <div>评阅中，请稍后查看。</div>
 <script>window.examData = [];</script></body></html>"""
 
+# 2026-11-23 实测：平台结果页 window.examData 是「题型 → 分桶对象」结构，
+# 桶内 questions 每项自带 correct_answer（正确答案文本）与 analysis（解析）。
+RESULT_HTML_BUCKET = """<!DOCTYPE html><html><body>
+<div class="score">最终得分：100 分</div>
+<script>
+window.examData = {
+ "qt01": {
+  "count":1,"answer_count":1,"qtype_name":"单选题","score":10,
+  "questions":[{
+   "analysis":"SPAdes 组装时 k-mer 是关键参数，不同取值会影响组装图结构。",
+   "answer_text":"","comment_score":10.0,
+   "content":"在 SPAdes 组装实验中，设置不同 k-mer 参数的主要目的是什么？",
+   "correct_answer":"评估不同 k-mer 取值对组装结果的影响",
+   "id":"sess-real_AI_qt01_1",
+   "options":["评估不同 k-mer 取值对组装结果的影响","直接提高测序深度","选择参考基因组"],
+   "qtype_id":"qt01","selected":1,
+   "student_answer":"评估不同 k-mer 取值对组装结果的影响"
+  }]
+ },
+ "qt02": {
+  "count":1,"answer_count":1,"qtype_name":"多选题","score":10,
+  "questions":[{
+   "analysis":"N50 反映 contig 长度的中间水平，是常用组装评估指标。",
+   "answer_text":"","comment_score":0.0,
+   "content":"关于 QUAST 的 N50 指标，下列说法正确的有哪些？",
+   "correct_answer":["按长度降序累加达到总长 50% 时的 contig 长度","反映组装连续性"],
+   "id":"sess-real_AI_qt02_1",
+   "options":["按长度降序累加达到总长 50% 时的 contig 长度","反映组装连续性","等于最长 contig"],
+   "qtype_id":"qt02","selected":1,
+   "student_answer":"按长度降序累加达到总长 50% 时的 contig 长度"
+  }]
+ }
+};
+window.final_score = 100;
+</script></body></html>"""
+
 CONCLUSION_DATA: Dict[str, Any] = {
     "low_rate_questions": [
         {

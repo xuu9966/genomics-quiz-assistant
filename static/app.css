@@ -81,7 +81,10 @@ input[type=search], select {
 body.status-color .status-success { border-left: 1px solid #2f6b3f; }
 body.status-color .status-failed { border-left: 1px solid #9a2f2f; }
 body.status-color .status-running { border-left: 1px solid #444; }
-.bank-list > details { border: 1px solid var(--line); margin-bottom: 8px; padding: 8px 12px; }
+.bank-list details { border: 1px solid var(--line); margin-bottom: 8px; padding: 8px 12px; }
+.bank-group { margin-bottom: 24px; }
+.bank-group > h2 { border-bottom: 1px solid var(--line); padding-bottom: 6px; margin: 0 0 10px; }
+.bank-group > h2 .muted { font-weight: 400; font-size: 12px; }
 .bank-list summary { cursor: pointer; font-weight: 600; }
 .bank-list ol { margin: 8px 0 8px 20px; }
 .bank-list .answer { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
@@ -92,7 +95,7 @@ body.status-color .status-running { border-left: 1px solid #444; }
   .tabs, .toolbar, .text-button, .footer { display: none !important; }
   .view.hidden { display: block !important; }
   body { font-size: 11pt; }
-  .panel, .grid th, .grid td, .bank-list > details { break-inside: avoid; }
+  .panel, .grid th, .grid td, .bank-list details { break-inside: avoid; }
 }
 
 /* v3 新增：复习启动表单与运行态（灰阶，沿用细线风格）。 */

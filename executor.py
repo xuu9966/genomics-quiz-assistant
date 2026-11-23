@@ -132,6 +132,9 @@ class TaskExecutor:
             if score is None:
                 raise ParseFailure("结果页未找到最终得分/已评阅分数。")
             self.bank.collect_from_result(result_html, task.chapter)
+            if hasattr(self.bank, "save"):
+                # 每题做完立即落盘：中途关窗口也不会丢已经采到的题目与解析。
+                self.bank.save()
             record.status = TaskStatus.SUCCESS.value
             record.score = float(score)
             record.session_id = paper.session_id
@@ -275,4 +278,6 @@ class TaskExecutor:
                 added += self.bank.collect_from_conclusion(conclusion, "")
             if page >= total_pages:
                 break
+        if added and hasattr(self.bank, "save"):
+            self.bank.save()
         return added

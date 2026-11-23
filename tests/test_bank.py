@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 import unittest
 
 from bank import QuestionBank
-from fixtures import CONCLUSION_JSON, RESULT_HTML
+from fixtures import CONCLUSION_JSON, RESULT_HTML, RESULT_HTML_BUCKET
 from models import QType, Question
 
 
@@ -81,6 +83,46 @@ class TestQuestionBank(unittest.TestCase):
         bank = QuestionBank()
         bank.collect_from_result(RESULT_HTML)
         self.assertIsInstance(json.dumps(bank.to_dicts(), ensure_ascii=False), str)
+
+    def test_collect_real_bucket_form_keeps_answer_analysis_and_chapter(self) -> None:
+        """真实结果页的题目必须带章节、正确答案和解析进题库。"""
+        bank = QuestionBank()
+        added = bank.collect_from_result(RESULT_HTML_BUCKET, "6_实验")
+        self.assertEqual(added, 2)
+        first, second = bank.all()
+        self.assertEqual(first.chapter, "6_实验")
+        self.assertIn("k-mer", first.correct_answer)
+        self.assertIn("SPAdes", first.analysis)
+        self.assertEqual(second.qtype, QType.MULTIPLE.value)
+        self.assertTrue(second.analysis)
+        # 平台多选题的 correct_answer 是数组，应展示为「A；B」而非 Python list 字符串
+        self.assertNotIn("[", second.correct_answer)
+        self.assertIn("反映组装连续性", second.correct_answer)
+
+    def test_persistence_roundtrip(self) -> None:
+        """关掉面板再启动，题目/答案/解析/章节必须还在。"""
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "data", "bank.json")
+            bank = QuestionBank(path=path)
+            bank.collect_from_result(RESULT_HTML_BUCKET, "6_实验")
+            self.assertTrue(bank.save())
+            self.assertTrue(os.path.isfile(path))
+
+            reloaded = QuestionBank(path=path)
+            self.assertEqual(len(reloaded), 2)
+            first = reloaded.all()[0]
+            self.assertEqual(first.chapter, "6_实验")
+            self.assertIn("k-mer", first.correct_answer)
+            self.assertIn("SPAdes", first.analysis)
+            self.assertEqual(reloaded.collect_from_result(RESULT_HTML_BUCKET, "6_实验"), 0)
+
+    def test_corrupt_bank_file_treated_as_empty(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "bank.json")
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write("not-json")
+            bank = QuestionBank(path=path)
+            self.assertEqual(len(bank), 0)
 
 
 if __name__ == "__main__":
